@@ -19,7 +19,8 @@ You need to run the provided script that crawls all your JavaScript sources
 for provide statements.  Be sure to include the sources of the Closure
 Library itself.  Here's an example:
 
-    js2-closure-provides.sh \
+    wget https://raw.githubusercontent.com/jart/js2-closure/master/js2-closure-provides.sh
+    ./js2-closure-provides.sh \
         ~/justinetunney.com/assets/closure/closure/goog \
         ~/justinetunney.com/assets/js/jart \
         >~/.emacs.d/js2-closure-provides.sh
