@@ -3,7 +3,7 @@
 ;; Copyright (C) 2014 Google, Inc.
 ;; Author: Justine Tunney <jart@google.com>
 ;; Version: 0.1
-;; URL: http://github.com/jart/justinemacs
+;; URL: http://github.com/jart/js2-closure
 
 ;;; Commentary:
 ;;
@@ -22,7 +22,8 @@
 ;; for provide statements.  Be sure to include the sources of the Closure
 ;; Library itself.  Here's an example:
 ;;
-;;     js2-closure-provides.sh \
+;;     wget https://raw.githubusercontent.com/jart/js2-closure/master/js2-closure-provides.sh
+;;     ./js2-closure-provides.sh \
 ;;         ~/justinetunney.com/assets/closure/closure/goog \
 ;;         ~/justinetunney.com/assets/js/jart \
 ;;         >~/.emacs.d/js2-closure-provides.sh
@@ -74,6 +75,10 @@ disabling this feature."
   "Filename of generated elisp file listing all provided namespaces."
   :type 'file
   :group 'js2-mode)
+
+(defconst js2-closure-help-url
+  "https://github.com/jart/js2-closure"
+  "URL of documentation to provide help to lost souls.")
 
 (defvar js2-closure-provides nil
   "Hierarchy of all closure provided namespaces.")
@@ -242,7 +247,13 @@ since syntax coloring might take some time to kick back in."
 (defun js2-closure-reload ()
   "Load precomputed list of provided namespaces into memory."
   (interactive)
+  (when (not (file-exists-p js2-closure-provides-file))
+    (error "js2-closure provides file (%s) not found. See docs: %s"
+           js2-closure-provides-file js2-closure-help-url))
   (load js2-closure-provides-file)
+  (when (not js2-closure-provides)
+    (error "js2-closure-provides (%s) is empty! See docs: %s"
+           js2-closure-provides-file js2-closure-help-url))
   (setq js2-closure-provides (js2-closure--make-tree js2-closure-provides)))
 
 ;;;###autoload
