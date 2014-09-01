@@ -23,8 +23,8 @@
 ;; http://melpa.milkbox.net/#/getting-started
 ;;
 ;; You then need to run a helper script that crawls all your JavaScript sources
-;; for goog.provide statements.  You need to give it the root directory of all
-;; your sources, including the Closure Library itself.  Here's an example:
+;; for `goog.provide` statements.  You need to give it the root directory of
+;; all your sources, including the Closure Library itself.  Here's an example:
 ;;
 ;;     wget https://raw.githubusercontent.com/jart/js2-closure/master/js2-closure-provides.sh
 ;;     ./js2-closure-provides.sh \
@@ -44,7 +44,7 @@
 ;;; Usage:
 ;;
 ;; To use this, you simply run `M-x js2-closure-fix` inside your `js2-mode'
-;; buffer.  This will regenerate the list of goog.require statements by
+;; buffer.  This will regenerate the list of `goog.require` statements by
 ;; crawling your source code to see which identifiers are being used.
 ;;
 ;; If you want the magic to happen automatically each time you save the suffer,
@@ -257,7 +257,7 @@ making up that identifier."
 
 ;;;###autoload
 (defun js2-closure-fix ()
-  "Fix the goog.require statements in the current buffer.
+  "Fix the `goog.require` statements in the current buffer.
 
 This function assumes that all the requires are in one place and
 sorted, without indentation or blank lines.  If you don't have
