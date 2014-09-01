@@ -3,7 +3,7 @@
 
 ---
 
-Do you use emacs, `js2-mode`, and Google's Closure Library?  Do you get
+Do you use Emacs, `js2-mode`, and Google's Closure Library?  Do you get
 frustrated writing your `goog.require` statements by hand?  If that's the
 case, then this extension is going to make you very happy.
 
@@ -15,9 +15,13 @@ even if you have a big project.
 ### Installation
 
 
-You need to run the provided script that crawls all your JavaScript sources
-for provide statements.  Be sure to include the sources of the Closure
-Library itself.  Here's an example:
+Install this package from MELPA using `M-x install-package` and type
+`js2-closure`. If you aren't already using MELPA, see:
+http://melpa.milkbox.net/#/getting-started
+
+You then need to run a helper script that crawls all your JavaScript sources
+for goog.provide statements.  You need to give it the root directory of all
+your sources, including the Closure Library itself.  Here's an example:
 
     wget https://raw.githubusercontent.com/jart/js2-closure/master/js2-closure-provides.sh
     ./js2-closure-provides.sh \
@@ -25,10 +29,14 @@ Library itself.  Here's an example:
         ~/justinetunney.com/assets/js/jart \
         >~/.emacs.d/js2-closure-provides.sh
 
-That will generate an index file in the same directory which should have the
-same path as `js2-closure-provides-file`.  You have to regenerate this file
-occasionally by hand.  Each time you run the script, you should also run
-`M-x js2-closure-reload` inside emacs.
+That will generate an index file in your `~/.emacs.d` directory.  If you
+want to store it in a different place, then `js2-closure-provides-file` will
+need to be customised.
+
+This index file will be loaded into Emacs automatically when the timestamp
+on the file changes.  You need to re-run the script manually whenever new
+`goog.provide` statements are added or removed.  Automating that part is up
+to you.
 
 ### Usage
 
@@ -38,7 +46,7 @@ buffer.  This will regenerate the list of goog.require statements by
 crawling your source code to see which identifiers are being used.
 
 If you want the magic to happen automatically each time you save the suffer,
-then add the following to your .emacs file:
+then add the following to your `.emacs` file:
 
     (eval-after-load 'js2-mode
       '(add-hook 'before-save-hook 'js2-closure-save-hook))
@@ -56,23 +64,24 @@ JavaScript style guide: http://goo.gl/Ny5WxZ
 
 #### `(js2-closure-fix)`
 
-Fix the goog.require statements for the current buffer.
+Fix the goog.require statements in the current buffer.
 
-This assumes that all the requires are in one place and sorted,
-without indentation or blank lines.  If you don't have any
-requires, they'll be added after your provide statements.  If you
-don't have those, then this routine will fail.
+This function assumes that all the requires are in one place and
+sorted, without indentation or blank lines.  If you don't have
+any requires, they'll be added after your provide statements.  If
+you don't have those, then this routine will fail.
 
 Effort was also made to avoid needlessly modifying the buffer,
 since syntax coloring might take some time to kick back in.
 
-#### `(js2-closure-reload)`
-
-Load precomputed list of provided namespaces into memory.
+This will automatically load `js2-closure-provides-file` into
+memory if it was modified or not yet loaded.
 
 #### `(js2-closure-save-hook)`
 
 Global save hook to invoke `js2-closure-fix` if in `js2-mode`.
+
+To use this feature, add it to `before-save-hook`.
 
 -----
 <div style="padding-top:15px;color: #d0d0d0;">
