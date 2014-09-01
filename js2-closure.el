@@ -7,7 +7,7 @@
 
 ;;; Commentary:
 ;;
-;; Do you use emacs, `js2-mode', and Google's Closure Library?  Do you get
+;; Do you use Emacs, `js2-mode', and Google's Closure Library?  Do you get
 ;; frustrated writing your `goog.require` statements by hand?  If that's the
 ;; case, then this extension is going to make you very happy.
 ;;
@@ -18,9 +18,13 @@
 
 ;;; Installation:
 ;;
-;; You need to run the provided script that crawls all your JavaScript sources
-;; for provide statements.  Be sure to include the sources of the Closure
-;; Library itself.  Here's an example:
+;; Install this package from MELPA using `M-x install-package` and type
+;; `js2-closure`. If you aren't already using MELPA, see:
+;; http://melpa.milkbox.net/#/getting-started
+;;
+;; You then need to run a helper script that crawls all your JavaScript sources
+;; for goog.provide statements.  You need to give it the root directory of all
+;; your sources, including the Closure Library itself.  Here's an example:
 ;;
 ;;     wget https://raw.githubusercontent.com/jart/js2-closure/master/js2-closure-provides.sh
 ;;     ./js2-closure-provides.sh \
@@ -28,10 +32,14 @@
 ;;         ~/justinetunney.com/assets/js/jart \
 ;;         >~/.emacs.d/js2-closure-provides.sh
 ;;
-;; That will generate an index file in the same directory which should have the
-;; same path as `js2-closure-provides-file'.  You have to regenerate this file
-;; occasionally by hand.  Each time you run the script, you should also run
-;; `M-x js2-closure-reload` inside emacs.
+;; That will generate an index file in your `~/.emacs.d` directory.  If you
+;; want to store it in a different place, then `js2-closure-provides-file' will
+;; need to be customised.
+;;
+;; This index file will be loaded into Emacs automatically when the timestamp
+;; on the file changes.  You need to re-run the script manually whenever new
+;; `goog.provide` statements are added or removed.  Automating that part is up
+;; to you.
 
 ;;; Usage:
 ;;
@@ -40,7 +48,7 @@
 ;; crawling your source code to see which identifiers are being used.
 ;;
 ;; If you want the magic to happen automatically each time you save the suffer,
-;; then add the following to your .emacs file:
+;; then add the following to your `.emacs` file:
 ;;
 ;;     (eval-after-load 'js2-mode
 ;;       '(add-hook 'before-save-hook 'js2-closure-save-hook))
@@ -82,6 +90,9 @@ disabling this feature."
 
 (defvar js2-closure-provides nil
   "Hierarchy of all closure provided namespaces.")
+
+(defvar js2-closure-provides-modified nil
+  "Modified timestamp of `js2-closure-provides-file'.")
 
 (defun js2-closure--make-tree (list)
   "Turn a sorted LIST of identifiers into a tree."
@@ -226,39 +237,52 @@ making up that identifier."
     (while namespaces
       (insert (format "goog.require('%s');\n" (pop namespaces))))))
 
+(defun js2-closure--file-modified (file)
+  "Return modified timestamp of FILE."
+  (nth 5 (file-attributes file)))
+
+(defun js2-closure--load (file)
+  "Load FILE with list of provided namespaces into memory."
+  (interactive)
+  (when (not (file-exists-p file))
+    (error "js2-closure provides file (%s) not found. See docs: %s"
+           file js2-closure-help-url))
+  (load file)
+  (when (not js2-closure-provides)
+    (error "js2-closure-provides (%s) is empty! See docs: %s"
+           file js2-closure-help-url))
+  (setq js2-closure-provides (js2-closure--make-tree js2-closure-provides))
+  (setq js2-closure-provides-modified (js2-closure--file-modified file))
+  (message (format "Loaded %s" file)))
+
 ;;;###autoload
 (defun js2-closure-fix ()
-  "Fix the goog.require statements for the current buffer.
+  "Fix the goog.require statements in the current buffer.
 
-This assumes that all the requires are in one place and sorted,
-without indentation or blank lines.  If you don't have any
-requires, they'll be added after your provide statements.  If you
-don't have those, then this routine will fail.
+This function assumes that all the requires are in one place and
+sorted, without indentation or blank lines.  If you don't have
+any requires, they'll be added after your provide statements.  If
+you don't have those, then this routine will fail.
 
 Effort was also made to avoid needlessly modifying the buffer,
-since syntax coloring might take some time to kick back in."
+since syntax coloring might take some time to kick back in.
+
+This will automatically load `js2-closure-provides-file' into
+memory if it was modified or not yet loaded."
   (interactive)
-  (unless js2-closure-provides
-    (js2-closure-reload))
+  (when (or (not js2-closure-provides)
+            (time-less-p js2-closure-provides-modified
+                         (js2-closure--file-modified
+                          js2-closure-provides-file)))
+    (js2-closure--load js2-closure-provides-file))
   (js2-closure--replace-closure-requires
    (js2-closure--determine-requires js2-mode-ast)))
 
 ;;;###autoload
-(defun js2-closure-reload ()
-  "Load precomputed list of provided namespaces into memory."
-  (interactive)
-  (when (not (file-exists-p js2-closure-provides-file))
-    (error "js2-closure provides file (%s) not found. See docs: %s"
-           js2-closure-provides-file js2-closure-help-url))
-  (load js2-closure-provides-file)
-  (when (not js2-closure-provides)
-    (error "js2-closure-provides (%s) is empty! See docs: %s"
-           js2-closure-provides-file js2-closure-help-url))
-  (setq js2-closure-provides (js2-closure--make-tree js2-closure-provides)))
-
-;;;###autoload
 (defun js2-closure-save-hook ()
-  "Global save hook to invoke `js2-closure-fix' if in `js2-mode'."
+  "Global save hook to invoke `js2-closure-fix' if in `js2-mode'.
+
+To use this feature, add it to `before-save-hook'."
   (interactive)
   (when (eq major-mode 'js2-mode)
     (js2-closure-fix)))
