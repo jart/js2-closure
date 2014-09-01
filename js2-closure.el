@@ -4,6 +4,7 @@
 ;; Author: Justine Tunney <jart@google.com>
 ;; Version: 0.1
 ;; URL: http://github.com/jart/js2-closure
+;; Package-Requires: ((js2-mode "20140114"))
 
 ;;; Commentary:
 ;;
