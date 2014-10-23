@@ -13,8 +13,10 @@ while read name; do
     continue
   fi
   printf "\n  (%s)" "${name//./ }"
-done < <(
-  find "$@" -name \*.js -and -not -name \*_test.js \
-    | xargs grep -Poh "(?<=^goog.provide\(')[^']+" \
-    | sort -u)
+done < <(cat \
+  <(find "$@" -name \*.js -and -not -name \*_test.js \
+      | xargs grep -Poh "(?<=^goog.provide\(')[^']+") \
+  <(find "$@" -name \*.soy \
+      | xargs grep -Poh "(?<=^{namespace )[^ }]+") \
+  | sort -u)
 printf "))\n"
