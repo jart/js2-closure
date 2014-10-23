@@ -125,7 +125,8 @@ disabling this feature."
           (js2-closure--make-identifier
            (js2-prop-get-node-right node)
            names)))
-        ((js2-node-p node)
+        ((and (js2-node-p node)
+              (js2-prop-node-name node))
          (cons (intern (js2-prop-node-name node)) names))
         ((stringp node)
          (mapcar 'intern (split-string node "\\.")))))
