@@ -14,13 +14,13 @@
 ;;
 ;; js2-closure is able to analyse the JavaScript code in your buffer to
 ;; determine which imports you need, and then update the `goog.require` list at
-;; the top of your buffer. It works like magic. It also runs instantaneously,
+;; the top of your buffer.  It works like magic.  It also runs instantaneously,
 ;; even if you have a big project.
 
 ;;; Installation:
 ;;
 ;; Install this package from MELPA using `M-x install-package` and type
-;; `js2-closure`. If you aren't already using MELPA, see:
+;; `js2-closure`.  If you aren't already using MELPA, see:
 ;; http://melpa.milkbox.net/#/getting-started
 ;;
 ;; You then need to run a helper script that crawls all your JavaScript sources
@@ -164,7 +164,7 @@ making up that identifier."
       (funcall on-call last))))
 
 (defun js2-closure--determine-requires (ast)
-  "Return a sorted list of closure namespaces that should be imported."
+  "Return sorted list of closure namespaces from AST to be imported."
   (let (provides requires references)
     (let ((on-call
            (lambda (node)
@@ -247,11 +247,11 @@ making up that identifier."
   "Load FILE with list of provided namespaces into memory."
   (interactive)
   (when (not (file-exists-p file))
-    (error "js2-closure provides file (%s) not found. See docs: %s"
+    (error "Empty js2-closure provides (%s) See docs: %s"
            file js2-closure-help-url))
   (load file)
   (when (not js2-closure-provides)
-    (error "js2-closure-provides (%s) is empty! See docs: %s"
+    (error "Empty js2-closure-provides (%s) See docs: %s"
            file js2-closure-help-url))
   (setq js2-closure-provides (js2-closure--make-tree js2-closure-provides))
   (setq js2-closure-provides-modified (js2-closure--file-modified file))
