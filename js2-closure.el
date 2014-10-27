@@ -24,13 +24,16 @@
 ;; http://melpa.milkbox.net/#/getting-started
 ;;
 ;; You then need to run a helper script that crawls all your JavaScript sources
-;; for `goog.provide` statements.  You need to give it the root directory of
-;; all your sources, including the Closure Library itself.  Here's an example:
+;; for `goog.provide` statements, in addition to your Closure Templates (Soy)
+;; for `{namespace}` declarations (assuming you're using the Soy->JS compiler).
+;; You must also download the source code to the Closure Library and pass this
+;; script the path of the `closure/goog` folder.  Here's an example:
 ;;
 ;;     wget https://raw.githubusercontent.com/jart/js2-closure/master/js2-closure-provides.sh
 ;;     ./js2-closure-provides.sh \
-;;         ~/justinetunney.com/assets/closure/closure/goog \
-;;         ~/justinetunney.com/assets/js/jart \
+;;         ~/project/closure-library/closure/goog \
+;;         ~/project/js \
+;;         ~/project/soy \
 ;;         >~/.emacs.d/js2-closure-provides.sh
 ;;
 ;; That will generate an index file in your `~/.emacs.d` directory.  If you
