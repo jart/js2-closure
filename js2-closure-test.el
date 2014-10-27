@@ -29,7 +29,7 @@
 (ert-deftest prune-provides--removes-nested-namespaces ()
   (should (equal (js2--closure-prune-provides
                   '((goog Foo)
-                    (goog Foo Bar)
+                    (goog Foo FooBar)
                     (goog lol Bean)
                     (goog lol Bean dream)
                     (goog lol Bean dream Goth)

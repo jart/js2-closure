@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2014 Google, Inc.
 ;; Author: Justine Tunney <jart@google.com>
-;; Version: 1.3
+;; Version: 1.4
 ;; URL: http://github.com/jart/js2-closure
 ;; Package-Requires: ((js2-mode "20140114"))
 
@@ -108,8 +108,9 @@ disabling this feature."
   "Return non-nil if IDENTIFIER has labels after one is capitalized."
   (let (result)
     (while identifier
-      (let ((label (symbol-name (pop identifier))))
-        (when (string= label (capitalize label))
+      (let ((first-char (string-to-char (symbol-name (pop identifier)))))
+        (when (and (>= first-char ?A)
+                   (<= first-char ?Z))
           (setq result identifier
                 identifier nil))))
     result))
@@ -121,12 +122,11 @@ Nested namespaces such as `goog.Foo.Bar` are provided in the
 Closure Library source code on several occasions.  However if you
 try to require these namespaces, then `gjslint` will complain,
 because it only wants us to require `goog.Foo`."
-  (let (result)
-    (while list
-      (let ((item (pop list)))
-        (when (not (js2--closure-nested-namespace-p item))
-          (push item result))))
-    (nreverse result)))
+  (nreverse
+   (let (result)
+     (dolist (item list result)
+       (when (not (js2--closure-nested-namespace-p item))
+         (push item result))))))
 
 (defun js2--closure-make-tree (list)
   "Turn sorted LIST of identifiers into a tree."
@@ -286,7 +286,9 @@ making up that identifier."
   (when (not js2-closure-provides)
     (error "Empty js2-closure-provides (%s) See docs: %s"
            file js2-closure-help-url))
-  (setq js2-closure-provides (js2--closure-make-tree js2-closure-provides))
+  (setq js2-closure-provides (js2--closure-make-tree
+                              (js2--closure-prune-provides
+                               js2-closure-provides)))
   (setq js2-closure-provides-modified (js2--closure-file-modified file))
   (message (format "Loaded %s" file)))
 
