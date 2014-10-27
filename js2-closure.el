@@ -290,7 +290,10 @@ memory if it was modified or not yet loaded."
 To use this feature, add it to `before-save-hook'."
   (interactive)
   (when (eq major-mode 'js2-mode)
-    (js2-closure-fix)))
+    (condition-case exc
+        (js2-closure-fix)
+      ('error
+       (message (format "js2-closure-fix failed: [%s]" exc))))))
 
 (provide 'js2-closure)
 
