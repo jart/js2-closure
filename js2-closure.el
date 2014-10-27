@@ -27,15 +27,20 @@
 ;; for `goog.provide` statements, in addition to your Closure Templates (Soy)
 ;; for `{namespace}` declarations (assuming you're using the Soy to JS
 ;; compiler).  You must also download the source code to the Closure Library
-;; and pass this script the path of the `closure/goog` folder.  Here's an
-;; example:
+;; and pass this script the path of the `closure/goog` folder.
 ;;
-;;     wget https://raw.githubusercontent.com/jart/js2-closure/master/js2-closure-provides.sh
-;;     ./js2-closure-provides.sh \
-;;         ~/project/closure-library/closure/goog \
-;;         ~/project/js \
-;;         ~/project/soy \
-;;         >~/.emacs.d/js2-closure-provides.sh
+;; Here's an example command for regenerating the provides index that you can
+;; add to your `~/.bashrc` file:
+;;
+;;     jsi() {
+;;       local github="https://raw.githubusercontent.com"
+;;       local script="js2-closure-provides.sh"
+;;       bash <(wget -qO- ${github}/jart/js2-closure/master/${script}) \
+;;         ~/code/closure-library/closure/goog \
+;;         ~/code/my-project/js \
+;;         ~/code/my-project/soy \
+;;         >~/.emacs.d/js2-closure-provides.el
+;;     }
 ;;
 ;; That will generate an index file in your `~/.emacs.d` directory.  If you
 ;; want to store it in a different place, then `js2-closure-provides-file' will
