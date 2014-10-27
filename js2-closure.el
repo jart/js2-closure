@@ -98,8 +98,32 @@ disabling this feature."
 (defvar js2-closure-provides-modified nil
   "Modified timestamp of `js2-closure-provides-file'.")
 
+(defun js2--closure-nested-namespace-p (identifier)
+  "Return non-nil if IDENTIFIER has labels after one is capitalized."
+  (let (result)
+    (while identifier
+      (let ((label (symbol-name (pop identifier))))
+        (when (string= label (capitalize label))
+          (setq result identifier
+                identifier nil))))
+    result))
+
+(defun js2--closure-prune-provides (list)
+  "Remove identifiers from LIST that shouldn't be required.
+
+Nested namespaces such as `goog.Foo.Bar` are provided in the
+Closure Library source code on several occasions.  However if you
+try to require these namespaces, then `gjslint` will complain,
+because it only wants us to require `goog.Foo`."
+  (let (result)
+    (while list
+      (let ((item (pop list)))
+        (when (not (js2--closure-nested-namespace-p item))
+          (push item result))))
+    (nreverse result)))
+
 (defun js2--closure-make-tree (list)
-  "Turn a sorted LIST of identifiers into a tree."
+  "Turn sorted LIST of identifiers into a tree."
   (let (result)
     (while list
       (let (sublist
@@ -121,7 +145,7 @@ disabling this feature."
       (cadr branch))))
 
 (defun js2--closure-make-identifier (node &optional names)
-  "Turn a NODE (or string) into an an ordered list of interned NAMES."
+  "Turn NODE (or string) into an ordered list of interned NAMES."
   (cond ((js2-prop-get-node-p node)
          (js2--closure-make-identifier
           (js2-prop-get-node-left node)

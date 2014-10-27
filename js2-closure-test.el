@@ -14,7 +14,7 @@
     js2-mode-ast))
 
 (ert-deftest make-tree ()
-  (should (equal (js2-closure--make-tree
+  (should (equal (js2--closure-make-tree
                   '((goog dom)
                     (goog dom classlist)
                     (goog events)
@@ -26,66 +26,77 @@
                                              (EventTarget t)))
                                 (net nil . ((XhrIo t)))))))))
 
+(ert-deftest prune-provides--removes-nested-namespaces ()
+  (should (equal (js2--closure-prune-provides
+                  '((goog Foo)
+                    (goog Foo Bar)
+                    (goog lol Bean)
+                    (goog lol Bean dream)
+                    (goog lol Bean dream Goth)
+                    (goog lol Bean dream Steam punk)))
+                 '((goog Foo)
+                   (goog lol Bean)))))
+
 (ert-deftest member-tree ()
-  (let ((tree (js2-closure--make-tree
+  (let ((tree (js2--closure-make-tree
                '((goog dom)
                  (goog dom classlist)
                  (goog events)
                  (goog events EventManager)
                  (goog events EventTarget)
                  (goog net XhrIo)))))
-    (should (js2-closure--member-tree '(goog dom) tree))
-    (should (js2-closure--member-tree '(goog dom classlist) tree))
-    (should (js2-closure--member-tree '(goog events EventManager) tree))
-    (should (js2-closure--member-tree '(goog events EventTarget) tree))
-    (should (js2-closure--member-tree '(goog net XhrIo) tree))
-    (should (not (js2-closure--member-tree '(goog) tree)))
-    (should (not (js2-closure--member-tree '(goog net) tree)))
-    (should (not (js2-closure--member-tree '(blob) tree)))
-    (should (not (js2-closure--member-tree '(blob) nil)))
-    (should (not (js2-closure--member-tree nil tree)))
-    (should (not (js2-closure--member-tree nil nil)))))
+    (should (js2--closure-member-tree '(goog dom) tree))
+    (should (js2--closure-member-tree '(goog dom classlist) tree))
+    (should (js2--closure-member-tree '(goog events EventManager) tree))
+    (should (js2--closure-member-tree '(goog events EventTarget) tree))
+    (should (js2--closure-member-tree '(goog net XhrIo) tree))
+    (should (not (js2--closure-member-tree '(goog) tree)))
+    (should (not (js2--closure-member-tree '(goog net) tree)))
+    (should (not (js2--closure-member-tree '(blob) tree)))
+    (should (not (js2--closure-member-tree '(blob) nil)))
+    (should (not (js2--closure-member-tree nil tree)))
+    (should (not (js2--closure-member-tree nil nil)))))
 
 (ert-deftest determine-requires--empty-buffer--returns-empty ()
-  (should (not (js2-closure--determine-requires (make-ast "")))))
+  (should (not (js2--closure-determine-requires (make-ast "")))))
 
 (ert-deftest determine-requires--remove-unused ()
   (let ((js2-closure-remove-unused t)
         (ast (make-ast "goog.require('foo');")))
-    (should (not (js2-closure--determine-requires ast)))))
+    (should (not (js2--closure-determine-requires ast)))))
 
 (ert-deftest determine-requires--whitelist ()
   (let ((js2-closure-remove-unused t)
         (js2-closure-whitelist '("foo"))
         (ast (make-ast "goog.require('foo');")))
-    (should (equal (js2-closure--determine-requires ast)
+    (should (equal (js2--closure-determine-requires ast)
                    '("foo")))))
 
 (ert-deftest determine-requires--dont-remove-unused ()
   (let ((js2-closure-remove-unused nil)
         (ast (make-ast "goog.require('foo');")))
-    (should (equal (js2-closure--determine-requires ast)
+    (should (equal (js2--closure-determine-requires ast)
                    '("foo")))))
 
 (ert-deftest determine-requires--function-call ()
   (let ((js2-closure-remove-unused t)
-        (js2-closure-provides (js2-closure--make-tree
+        (js2-closure-provides (js2--closure-make-tree
                                '((goog dom))))
         (ast (make-ast "goog.dom.getElement('foo');")))
-    (should (equal (js2-closure--determine-requires ast)
+    (should (equal (js2--closure-determine-requires ast)
                    '("goog.dom")))))
 
 (ert-deftest determine-requires--reference ()
   (let ((js2-closure-remove-unused t)
-        (js2-closure-provides (js2-closure--make-tree
+        (js2-closure-provides (js2--closure-make-tree
                                '((goog dom))))
         (ast (make-ast "foo = goog.dom.getElement;")))
-    (should (equal (js2-closure--determine-requires ast)
+    (should (equal (js2--closure-determine-requires ast)
                    '("goog.dom")))))
 
 (ert-deftest determine-requires--already-required ()
   (let ((js2-closure-remove-unused t)
-        (js2-closure-provides (js2-closure--make-tree
+        (js2-closure-provides (js2--closure-make-tree
                                '((goog dom)
                                  (goog events EventManager))))
         (ast (make-ast "
@@ -97,27 +108,27 @@ foo.Bar = function() {
   new goog.events.EventManager();
 };
 ")))
-    (should (equal (js2-closure--determine-requires ast)
+    (should (equal (js2--closure-determine-requires ast)
                    '("goog.dom"
                      "goog.events.EventManager")))))
 
 (ert-deftest determine-requires--provide-is-ignored ()
   (let ((js2-closure-remove-unused t)
-        (js2-closure-provides (js2-closure--make-tree
+        (js2-closure-provides (js2--closure-make-tree
                                '((foo Bar))))
         (ast (make-ast "
 goog.provide('foo.Bar');
 new foo.Bar();
 ")))
-    (should (not (js2-closure--determine-requires ast)))))
+    (should (not (js2--closure-determine-requires ast)))))
 
 (ert-deftest determine-requires--dont-include-parent-namespaces ()
   (let ((js2-closure-remove-unused t)
-        (js2-closure-provides (js2-closure--make-tree
+        (js2-closure-provides (js2--closure-make-tree
                                '((goog events)
                                  (goog events EventManager))))
         (ast (make-ast "new goog.events.EventManager();")))
-    (should (equal (js2-closure--determine-requires ast)
+    (should (equal (js2--closure-determine-requires ast)
                    '("goog.events.EventManager")))))
 
 (ert-deftest replace-closure-requires ()
@@ -130,7 +141,7 @@ goog.require('black.angel');
 goog.require('not.insane');\n\n
 jart.lol.funk = function() {};
 ")
-      (js2-closure--replace-closure-requires
+      (js2--closure-replace-closure-requires
        '("a.cat"
          "black.angel"
          "down.with.bill.gates"))
@@ -153,7 +164,7 @@ goog.provide('jart.lol.Hog');
 goog.provide('jart.lol.Mog');\n\n\n
 jart.lol.Hog = function() {};
 ")
-      (js2-closure--replace-closure-requires
+      (js2--closure-replace-closure-requires
        '("a.cat"
          "black.angel"
          "down.with.bill.gates"))
@@ -171,6 +182,6 @@ jart.lol.Hog = function() {};
 (ert-deftest replace-closure-requires--no-requires-or-provides--fail ()
   :expected-result :failed
   (with-temp-buffer
-    (js2-closure--replace-closure-requires '("a.cat"))))
+    (js2--closure-replace-closure-requires '("a.cat"))))
 
 ;;; js2-closure-test.el ends here
