@@ -98,7 +98,7 @@ disabling this feature."
 (defvar js2-closure-provides-modified nil
   "Modified timestamp of `js2-closure-provides-file'.")
 
-(defun js2-closure--make-tree (list)
+(defun js2--closure-make-tree (list)
   "Turn a sorted LIST of identifiers into a tree."
   (let (result)
     (while list
@@ -109,23 +109,23 @@ disabling this feature."
           (let ((item (pop list)))
             (when (cdr item)
               (push (cdr item) sublist))))
-        (let ((subtree (js2-closure--make-tree (nreverse sublist))))
+        (let ((subtree (js2--closure-make-tree (nreverse sublist))))
           (push (cons name (cons is-leaf subtree)) result))))
     (nreverse result)))
 
-(defun js2-closure--member-tree (identifier tree)
+(defun js2--closure-member-tree (identifier tree)
   "Return t if IDENTIFIER is a member of TREE."
   (let ((branch (assq (car identifier) tree)))
     (if (and branch (cdr identifier))
-        (js2-closure--member-tree (cdr identifier) (cddr branch))
+        (js2--closure-member-tree (cdr identifier) (cddr branch))
       (cadr branch))))
 
-(defun js2-closure--make-identifier (node &optional names)
+(defun js2--closure-make-identifier (node &optional names)
   "Turn a NODE (or string) into an an ordered list of interned NAMES."
   (cond ((js2-prop-get-node-p node)
-         (js2-closure--make-identifier
+         (js2--closure-make-identifier
           (js2-prop-get-node-left node)
-          (js2-closure--make-identifier
+          (js2--closure-make-identifier
            (js2-prop-get-node-right node)
            names)))
         ((and (js2-node-p node)
@@ -134,11 +134,11 @@ disabling this feature."
         ((stringp node)
          (mapcar 'intern (split-string node "\\.")))))
 
-(defun js2-closure--identifier-to-string (identifier)
+(defun js2--closure-identifier-to-string (identifier)
   "Convert IDENTIFIER into a dotted string."
   (mapconcat 'symbol-name identifier "."))
 
-(defun js2-closure--crawl (ast on-call on-identifier)
+(defun js2--closure-crawl (ast on-call on-identifier)
   "Crawl `js2-mode' AST and invoke callbacks on nodes.
 
 ON-CALL will be invoked for all `js2-call-node' nodes, passing
@@ -166,29 +166,29 @@ making up that identifier."
     (when last
       (funcall on-call last))))
 
-(defun js2-closure--determine-requires (ast)
+(defun js2--closure-determine-requires (ast)
   "Return sorted list of closure namespaces from AST to be imported."
   (let (provides requires references)
     (let ((on-call
            (lambda (node)
-             (let ((funk (js2-closure--make-identifier
+             (let ((funk (js2--closure-make-identifier
                           (js2-call-node-target node)))
                    (arg1 (car (js2-call-node-args node))))
                (cond ((and (equal funk '(goog provide))
                            (js2-string-node-p arg1))
-                      (let ((item (js2-closure--make-identifier
+                      (let ((item (js2--closure-make-identifier
                                    (js2-string-node-value arg1))))
                         (when (not (member item provides))
                           (push item provides))))
                      ((and (equal funk '(goog require))
                            (js2-string-node-p arg1))
-                      (let ((item (js2-closure--make-identifier
+                      (let ((item (js2--closure-make-identifier
                                    (js2-string-node-value arg1))))
                         (when (not (member item requires))
                           (push item requires))))))))
           (on-identifier
            (lambda (node)
-             (let ((item (js2-closure--make-identifier node)))
+             (let ((item (js2--closure-make-identifier node)))
                (while item
                  (cond ((member item provides)
                         (setq item nil))
@@ -196,28 +196,28 @@ making up that identifier."
                         (when (not (member item references))
                           (push item references))
                         (setq item nil))
-                       ((js2-closure--member-tree item js2-closure-provides)
+                       ((js2--closure-member-tree item js2-closure-provides)
                         (when (not (member item references))
                           (push item references))
                         (setq item nil)))
                  (setq item (butlast item)))))))
-      (js2-closure--crawl ast on-call on-identifier))
+      (js2--closure-crawl ast on-call on-identifier))
     (sort (let (result)
             (dolist (item requires)
               (when (or (not js2-closure-remove-unused)
-                        (member (js2-closure--identifier-to-string item)
+                        (member (js2--closure-identifier-to-string item)
                                 js2-closure-whitelist)
                         (member item references))
-                (let ((namespace (js2-closure--identifier-to-string item)))
+                (let ((namespace (js2--closure-identifier-to-string item)))
                   (push namespace result))))
             (dolist (item references result)
               (when (member item references)
-                (let ((namespace (js2-closure--identifier-to-string item)))
+                (let ((namespace (js2--closure-identifier-to-string item)))
                   (when (not (member namespace result))
                     (push namespace result))))))
           'string<)))
 
-(defun js2-closure--replace-closure-requires (namespaces)
+(defun js2--closure-replace-closure-requires (namespaces)
   "Replace the current list of requires with NAMESPACES."
   (save-excursion
     (goto-char 0)
@@ -242,11 +242,11 @@ making up that identifier."
     (while namespaces
       (insert (format "goog.require('%s');\n" (pop namespaces))))))
 
-(defun js2-closure--file-modified (file)
+(defun js2--closure-file-modified (file)
   "Return modified timestamp of FILE."
   (nth 5 (file-attributes file)))
 
-(defun js2-closure--load (file)
+(defun js2--closure-load (file)
   "Load FILE with list of provided namespaces into memory."
   (interactive)
   (when (not (file-exists-p file))
@@ -256,8 +256,8 @@ making up that identifier."
   (when (not js2-closure-provides)
     (error "Empty js2-closure-provides (%s) See docs: %s"
            file js2-closure-help-url))
-  (setq js2-closure-provides (js2-closure--make-tree js2-closure-provides))
-  (setq js2-closure-provides-modified (js2-closure--file-modified file))
+  (setq js2-closure-provides (js2--closure-make-tree js2-closure-provides))
+  (setq js2-closure-provides-modified (js2--closure-file-modified file))
   (message (format "Loaded %s" file)))
 
 ;;;###autoload
@@ -277,11 +277,11 @@ memory if it was modified or not yet loaded."
   (interactive)
   (when (or (not js2-closure-provides)
             (time-less-p js2-closure-provides-modified
-                         (js2-closure--file-modified
+                         (js2--closure-file-modified
                           js2-closure-provides-file)))
-    (js2-closure--load js2-closure-provides-file))
-  (js2-closure--replace-closure-requires
-   (js2-closure--determine-requires js2-mode-ast)))
+    (js2--closure-load js2-closure-provides-file))
+  (js2--closure-replace-closure-requires
+   (js2--closure-determine-requires js2-mode-ast)))
 
 ;;;###autoload
 (defun js2-closure-save-hook ()
