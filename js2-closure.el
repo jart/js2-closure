@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2014 Google, Inc.
 ;; Author: Justine Tunney <jart@google.com>
-;; Version: 1.2
+;; Version: 1.3
 ;; URL: http://github.com/jart/js2-closure
 ;; Package-Requires: ((js2-mode "20140114"))
 
@@ -25,9 +25,10 @@
 ;;
 ;; You then need to run a helper script that crawls all your JavaScript sources
 ;; for `goog.provide` statements, in addition to your Closure Templates (Soy)
-;; for `{namespace}` declarations (assuming you're using the Soy->JS compiler).
-;; You must also download the source code to the Closure Library and pass this
-;; script the path of the `closure/goog` folder.  Here's an example:
+;; for `{namespace}` declarations (assuming you're using the Soy to JS
+;; compiler).  You must also download the source code to the Closure Library
+;; and pass this script the path of the `closure/goog` folder.  Here's an
+;; example:
 ;;
 ;;     wget https://raw.githubusercontent.com/jart/js2-closure/master/js2-closure-provides.sh
 ;;     ./js2-closure-provides.sh \
@@ -51,7 +52,7 @@
 ;; buffer.  This will regenerate the list of `goog.require` statements by
 ;; crawling your source code to see which identifiers are being used.
 ;;
-;; If you want the magic to happen automatically each time you save the suffer,
+;; If you want the magic to happen automatically each time you save the buffer,
 ;; then add the following to your `.emacs` file:
 ;;
 ;;     (eval-after-load 'js2-mode
