@@ -21,16 +21,22 @@ http://melpa.milkbox.net/#/getting-started
 
 You then need to run a helper script that crawls all your JavaScript sources
 for `goog.provide` statements, in addition to your Closure Templates (Soy)
-for `{namespace}` declarations (assuming you're using the Soy->JS compiler).
-You must also download the source code to the Closure Library and pass this
-script the path of the `closure/goog` folder.  Here's an example:
+for `{namespace}` declarations (assuming you're using the Soy to JS
+compiler).  You must also download the source code to the Closure Library
+and pass this script the path of the `closure/goog` folder.
 
-    wget https://raw.githubusercontent.com/jart/js2-closure/master/js2-closure-provides.sh
-    ./js2-closure-provides.sh \
-        ~/project/closure-library/closure/goog \
-        ~/project/js \
-        ~/project/soy \
-        >~/.emacs.d/js2-closure-provides.sh
+Here's an example command for regenerating the provides index that you can
+add to your `~/.bashrc` file:
+
+    jsi() {
+      local github="https://raw.githubusercontent.com"
+      local script="js2-closure-provides.sh"
+      bash <(wget -qO- ${github}/jart/js2-closure/master/${script}) \
+        ~/code/closure-library/closure/goog \
+        ~/code/my-project/js \
+        ~/code/my-project/soy \
+        >~/.emacs.d/js2-closure-provides.el
+    }
 
 That will generate an index file in your `~/.emacs.d` directory.  If you
 want to store it in a different place, then `js2-closure-provides-file` will
@@ -48,7 +54,7 @@ To use this, you simply run `M-x js2-closure-fix` inside your `js2-mode`
 buffer.  This will regenerate the list of `goog.require` statements by
 crawling your source code to see which identifiers are being used.
 
-If you want the magic to happen automatically each time you save the suffer,
+If you want the magic to happen automatically each time you save the buffer,
 then add the following to your `.emacs` file:
 
     (eval-after-load 'js2-mode
