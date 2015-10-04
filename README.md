@@ -2,6 +2,8 @@
 *Google Closure dependency manager*
 
 ---
+[![MELPA](http://melpa.org/packages/js2-closure-badge.svg)](http://melpa.org/#/js2-closure)
+[![MELPA Stable](http://stable.melpa.org/packages/js2-closure-badge.svg)](http://stable.melpa.org/#/js2-closure)
 
 Do you use Emacs, `js2-mode`, and Google's Closure Library?  Do you get
 frustrated writing your `goog.require` statements by hand?  If that's the
