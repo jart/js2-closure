@@ -10,7 +10,7 @@
   (with-temp-buffer
     (insert source)
     (js2-mode)
-    (should (null js2-mode-buffer-dirty-p))
+    (js2-reparse)
     js2-mode-ast))
 
 (ert-deftest make-tree ()
@@ -156,6 +156,23 @@ goog.require('down.with.bill.gates');\n\n
 jart.lol.funk = function() {};
 "))))
 
+(ert-deftest delete-requires--removes-leading-line ()
+  (let (contents)
+    (with-temp-buffer
+      (insert "
+goog.provide('jart.lol');\n
+goog.require('black.angel');
+goog.require('not.insane');\n\n
+jart.lol.funk = function() {};
+")
+      (js2--closure-delete-requires)
+      (setq contents (buffer-substring-no-properties
+                      (point-min) (point-max))))
+    (should (equal contents "
+goog.provide('jart.lol');\n\n
+jart.lol.funk = function() {};
+"))))
+
 (ert-deftest replace-closure-requires--no-requires--insert-after-provides ()
   (let (contents)
     (with-temp-buffer
@@ -179,9 +196,34 @@ goog.require('down.with.bill.gates');\n\n\n
 jart.lol.Hog = function() {};
 "))))
 
-(ert-deftest replace-closure-requires--no-requires-or-provides--fail ()
-  :expected-result :failed
-  (with-temp-buffer
-    (js2--closure-replace-closure-requires '("a.cat"))))
+(ert-deftest no-requires-or-provides--inserts-after-fileoverview ()
+  (let (contents)
+    (with-temp-buffer
+      (insert "
+/** @fileoverview blah */\n
+jart.lol.Hog = function() {};
+")
+      (js2--closure-replace-closure-requires '("a.cat"))
+      (setq contents (buffer-substring-no-properties
+                      (point-min) (point-max))))
+    (should (equal contents "
+/** @fileoverview blah */\n
+goog.require('a.cat');\n
+jart.lol.Hog = function() {};
+"))))
+
+(ert-deftest no-requires-provides-overview--inserts-after-comment ()
+  (let (contents)
+    (with-temp-buffer
+      (insert "// oh yeah\n
+jart.lol.Hog = function() {};
+")
+      (js2--closure-replace-closure-requires '("a.cat"))
+      (setq contents (buffer-substring-no-properties
+                      (point-min) (point-max))))
+    (should (equal contents "// oh yeah\n
+goog.require('a.cat');\n
+jart.lol.Hog = function() {};
+"))))
 
 ;;; js2-closure-test.el ends here

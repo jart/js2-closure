@@ -247,28 +247,45 @@ making up that identifier."
                     (push namespace result))))))
           'string<)))
 
+(defun js2--closure-delete-requires ()
+  "Delete all goog.require statements in buffer."
+  (save-excursion
+    (goto-char 0)
+    (when (search-forward-regexp "^goog.require(" nil t)
+      (forward-line -1)
+      (when (looking-at "^$")
+        (delete-region (point) (progn (forward-line 1) (point)))))
+    (while (search-forward-regexp "^goog.require(" nil t)
+      (beginning-of-line)
+      (delete-region (point) (progn (forward-line 1) (point))))))
+
 (defun js2--closure-replace-closure-requires (namespaces)
   "Replace the current list of requires with NAMESPACES."
   (save-excursion
     (goto-char 0)
     (if (search-forward-regexp "^goog.require(" nil t)
         (beginning-of-line)
-      (progn (search-forward-regexp "^goog.provide(")
-             (search-forward-regexp "^$")
-             (open-line 1)))
-    (while (and namespaces (search-forward-regexp
-                            "^goog.require('\\([^']+\\)');" nil t))
-      (when (not (string= (match-string 1) (car namespaces)))
-        (if (not (string= (match-string 1) (cadr namespaces)))
-            (replace-match (car namespaces) t t nil 1)
-          (progn (beginning-of-line)
-                 (insert (format "goog.require('%s');\n" (car namespaces))))))
+      (if (search-forward-regexp "^goog.provide(" nil t)
+          (progn (search-forward-regexp "^$")
+                 (insert "\n"))
+        (progn
+          (search-forward-regexp "@fileoverview" nil t)
+          (if (search-forward-regexp "^$" nil t)
+              (when (not (= 1 (point)))
+                (insert "\n"))
+            (progn (goto-char (point-max))
+                   (insert "\n"))))))
+    (while (search-forward-regexp
+            "^goog.require('\\([^']+\\)');" nil t)
+      (if namespaces
+          (progn
+            (when (not (string= (match-string 1) (car namespaces)))
+              (replace-match (car namespaces) t t nil 1))
+            (forward-line))
+        (progn
+          (beginning-of-line)
+          (delete-region (point) (progn (forward-line 1) (point)))))
       (setq namespaces (cdr namespaces)))
-    (forward-line)
-    (while (looking-at "^goog.require(")
-      (delete-region (point) (save-excursion
-                               (forward-line)
-                               (point))))
     (while namespaces
       (insert (format "goog.require('%s');\n" (pop namespaces))))))
 
@@ -312,8 +329,10 @@ memory if it was modified or not yet loaded."
                          (js2--closure-file-modified
                           js2-closure-provides-file)))
     (js2--closure-load js2-closure-provides-file))
-  (js2--closure-replace-closure-requires
-   (js2--closure-determine-requires js2-mode-ast)))
+  (let ((namespaces (js2--closure-determine-requires js2-mode-ast)))
+    (if namespaces
+        (js2--closure-replace-closure-requires namespaces)
+      (js2--closure-delete-requires))))
 
 ;;;###autoload
 (defun js2-closure-save-hook ()
@@ -322,6 +341,7 @@ memory if it was modified or not yet loaded."
 To use this feature, add it to `before-save-hook'."
   (interactive)
   (when (eq major-mode 'js2-mode)
+    (js2-reparse)
     (condition-case exc
         (js2-closure-fix)
       ('error
