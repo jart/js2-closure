@@ -14,6 +14,10 @@ determine which imports you need, and then update the `goog.require` list at
 the top of your buffer.  It works like magic.  It also runs instantaneously,
 even if you have a big project.
 
+This tool only works on files using traditional namespacing,
+i.e. `goog.provide` and `goog.require`. However js2-closure is smart enough
+to turn itself off in files that use `goog.module` or ES6 imports.
+
 ### Installation
 
 
@@ -75,24 +79,24 @@ JavaScript style guide: http://goo.gl/Ny5WxZ
 
 #### `(js2-closure-fix)`
 
-Fix the `goog.require` statements in the current buffer.
+Fix the ‘goog.require‘ statements in the current buffer.
 
 This function assumes that all the requires are in one place and
-sorted, without indentation or blank lines.  If you don't have
-any requires, they'll be added after your provide statements.  If
-you don't have those, then this routine will fail.
+sorted, without indentation or blank lines.  If you don’t have
+any requires, they’ll be added after your provide statements.  If
+you don’t have those, then this routine will fail.
 
 Effort was also made to avoid needlessly modifying the buffer,
 since syntax coloring might take some time to kick back in.
 
-This will automatically load `js2-closure-provides-file` into
+This will automatically load ‘js2-closure-provides-file’ into
 memory if it was modified or not yet loaded.
 
 #### `(js2-closure-save-hook)`
 
-Global save hook to invoke `js2-closure-fix` if in `js2-mode`.
+Global save hook to invoke ‘js2-closure-fix’ if in ‘js2-mode’.
 
-To use this feature, add it to `before-save-hook`.
+To use this feature, add it to ‘before-save-hook’.
 
 -----
 <div style="padding-top:15px;color: #d0d0d0;">

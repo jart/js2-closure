@@ -226,4 +226,15 @@ goog.require('a.cat');\n
 jart.lol.Hog = function() {};
 "))))
 
+(ert-deftest empty-buffer--will-be-operated-on ()
+  (should (with-temp-buffer (js2--has-traditional-namespaces))))
+
+(ert-deftest goog-module-buffer--will-not-be-operated-on ()
+  (should (not (with-temp-buffer (insert "goog.module('foo');\n")
+                                 (js2--has-traditional-namespaces)))))
+
+(ert-deftest es6-module-buffer--will-not-be-operated-on ()
+  (should (not (with-temp-buffer (insert "import 'foo';\n")
+                                 (js2--has-traditional-namespaces)))))
+
 ;;; js2-closure-test.el ends here

@@ -1,10 +1,10 @@
 ;;; js2-closure.el --- Google Closure dependency manager
 
-;; Copyright (C) 2014 Google, Inc.
+;; Copyright (C) 2016 Google, Inc.
 ;; Author: Justine Tunney <jart@google.com>
 ;; Version: 1.4
 ;; URL: http://github.com/jart/js2-closure
-;; Package-Requires: ((js2-mode "20140114"))
+;; Package-Requires: ((js2-mode "20150909"))
 
 ;;; Commentary:
 ;;
@@ -16,6 +16,10 @@
 ;; determine which imports you need, and then update the `goog.require` list at
 ;; the top of your buffer.  It works like magic.  It also runs instantaneously,
 ;; even if you have a big project.
+;;
+;; This tool only works on files using traditional namespacing,
+;; i.e. `goog.provide` and `goog.require`. However js2-closure is smart enough
+;; to turn itself off in files that use `goog.module` or ES6 imports.
 
 ;;; Installation:
 ;;
@@ -309,6 +313,13 @@ making up that identifier."
   (setq js2-closure-provides-modified (js2--closure-file-modified file))
   (message (format "Loaded %s" file)))
 
+(defun js2--has-traditional-namespaces ()
+  "Return t if buffer doesn't use module namespacing."
+  (save-excursion
+    (goto-char 0)
+    (not (or (search-forward-regexp "^goog.module(" nil t)
+             (search-forward-regexp "^import " nil t)))))
+
 ;;;###autoload
 (defun js2-closure-fix ()
   "Fix the `goog.require` statements in the current buffer.
@@ -329,10 +340,11 @@ memory if it was modified or not yet loaded."
                          (js2--closure-file-modified
                           js2-closure-provides-file)))
     (js2--closure-load js2-closure-provides-file))
-  (let ((namespaces (js2--closure-determine-requires js2-mode-ast)))
-    (if namespaces
-        (js2--closure-replace-closure-requires namespaces)
-      (js2--closure-delete-requires))))
+  (when (js2--has-traditional-namespaces)
+    (let ((namespaces (js2--closure-determine-requires js2-mode-ast)))
+      (if namespaces
+          (js2--closure-replace-closure-requires namespaces)
+        (js2--closure-delete-requires)))))
 
 ;;;###autoload
 (defun js2-closure-save-hook ()
