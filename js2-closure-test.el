@@ -5,13 +5,17 @@
 (require 'ert)
 (require 'js2-closure)
 
+(defun get-ast ()
+  "Extract `js2-mode' abstract syntax tree from current buffer."
+  (js2-mode)
+  (js2-reparse)
+  js2-mode-ast)
+
 (defun make-ast (source)
   "Extract `js2-mode' abstract syntax tree from SOURCE."
   (with-temp-buffer
     (insert source)
-    (js2-mode)
-    (js2-reparse)
-    js2-mode-ast))
+    (get-ast)))
 
 (ert-deftest make-tree ()
   (should (equal (js2--closure-make-tree
@@ -235,15 +239,100 @@ goog.require('a.cat');\n
 jart.lol.Hog = function() {};
 "))))
 
+(ert-deftest extract-jsdocs ()
+  (with-temp-buffer
+    (insert "
+/** @type {!goog.dom.TagName} */
+var hello;
+")
+    (should (equal (js2--closure-extract-jsdocs (get-ast))
+                   '("/** @type {!goog.dom.TagName} */")))))
+
+(ert-deftest extract-namespaces--empty ()
+  (should (equal (js2--closure-extract-namespaces
+                  "/** lol */")
+                 '())))
+
+(ert-deftest extract-namespaces--compound-type ()
+  (should (equal (js2--closure-extract-namespaces
+                  "/** @return {!Array<!foo.Bar>|string} */")
+                 '("string" "foo.Bar" "Array"))))
+
+(ert-deftest extract-namespaces--multiline-compound-type ()
+  (should (equal (js2--closure-extract-namespaces
+                  "/** @return {!Array<!foo.Bar>|\n * string} */")
+                 '("string" "foo.Bar" "Array"))))
+
+(ert-deftest extract-namespaces--extends ()
+  (should (equal (js2--closure-extract-namespaces
+                  "/** @extends foo.Bar */")
+                 '("foo.Bar"))))
+
+(ert-deftest extract-namespaces--sloppy-code ()
+  (should (equal (js2--closure-extract-namespaces
+                  "/**@param{foo} */")
+                 '("foo"))))
+
+(ert-deftest extract-namespaces--unknown-tag--ignored ()
+  (should (equal (js2--closure-extract-namespaces
+                  "/** @paramz {foo} */")
+                 '())))
+
+(ert-deftest type-in-jsdoc--gets-detected ()
+  (let ((js2-closure-require-jsdoc t)
+        (js2-closure-provides (js2--closure-make-tree
+                               '((goog dom TagName)))))
+    (with-temp-buffer
+      (insert "
+/** @type {!goog.dom.TagName} */
+var hello;
+/** @type {!goog.dom.TagName} */
+var there;
+")
+      (js2-reparse)
+      (should (equal (js2--closure-determine-requires (get-ast))
+                     '("goog.dom.TagName"))))))
+
+(ert-deftest type-in-jsdoc--namespace-is-provided--does-not-get-required ()
+  (let ((js2-closure-require-jsdoc t)
+        (js2-closure-provides (js2--closure-make-tree
+                               '((goog dom TagName)))))
+    (with-temp-buffer
+      (insert "
+goog.provide('goog.dom.TagName');
+/** @type {!goog.dom.TagName} */
+var hello;
+/** @type {!goog.dom.TagName} */
+var there;
+")
+      (js2-reparse)
+      (should (equal (js2--closure-determine-requires (get-ast))
+                     '())))))
+
+(ert-deftest type-in-jsdoc--doesnt-get-detected-when-feature-is-off ()
+  (let ((js2-closure-require-jsdoc nil)
+        (js2-closure-provides (js2--closure-make-tree
+                               '((goog dom TagName)))))
+    (with-temp-buffer
+      (insert "
+/** @type {!goog.dom.TagName} */
+var hello;
+/** @type {!goog.dom.TagName} */
+var there;
+")
+      (js2-reparse)
+      (should (equal (js2--closure-determine-requires (get-ast))
+                     '())))))
+
 (ert-deftest empty-buffer--will-be-operated-on ()
-  (should (with-temp-buffer (js2--has-traditional-namespaces))))
+  (should (with-temp-buffer (js2--closure-has-traditional-namespaces))))
 
 (ert-deftest goog-module-buffer--will-not-be-operated-on ()
   (should (not (with-temp-buffer (insert "goog.module('foo');\n")
-                                 (js2--has-traditional-namespaces)))))
+                                 (js2--closure-has-traditional-namespaces)))))
 
 (ert-deftest es6-module-buffer--will-not-be-operated-on ()
   (should (not (with-temp-buffer (insert "import 'foo';\n")
-                                 (js2--has-traditional-namespaces)))))
+                                 (js2--closure-has-traditional-namespaces)))))
 
 ;;; js2-closure-test.el ends here

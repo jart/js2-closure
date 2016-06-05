@@ -74,10 +74,23 @@
 ;;
 ;; This tool was written under the assumption that you're following Google's
 ;; JavaScript style guide: http://goo.gl/Ny5WxZ
+;;
+;; You can customize the behavior of js2-closure with the following settings:
+;;
+;; - `js2-closure-remove-unused'
+;; - `js2-closure-require-jsdoc'
+;; - `js2-closure-whitelist'
+;;
+;; See the source code for more information.
 
 ;;; Code:
 
 (require 'js2-mode)
+
+(defcustom js2-closure-require-jsdoc t
+  "Indicates types referenced only in JSDoc should be required."
+  :type 'boolean
+  :group 'js2-mode)
 
 (defcustom js2-closure-remove-unused t
   "Determines if unused goog.require statements should be auto-removed.
@@ -108,6 +121,36 @@ disabling this feature."
 
 (defvar js2-closure-provides-modified nil
   "Modified timestamp of `js2-closure-provides-file'.")
+
+(defconst js2-closure-namespace-regexp
+  (concat js2-mode-identifier-re "\\(?:\\." js2-mode-identifier-re "\\)*")
+  "Matches a Closure namespace.")
+
+(defconst js2-closure-jsdoc-simple-type-tag-regexp
+  (concat "\\*\\s-*@"
+          (regexp-opt '("extends" "implements"))
+          "\\(?:\\s-+\\|\\s-*{\\)\\("
+          js2-closure-namespace-regexp
+          "\\)")
+  "Matches JSDoc type declarations that can't have things like unions.")
+
+(defconst js2-closure-jsdoc-compound-type-tag-regexp
+  (concat "\\*\\s-*@"
+          (regexp-opt
+           '("const"
+             "define"
+             "enum"
+             "package"
+             "param"
+             "private"
+             "protected"
+             "public"
+             "return"
+             "throws"
+             "type"
+             "typedef"))
+          "\\s-*{\\([^}]+\\)}")
+  "Matches JSDoc type declarations that could potentially be complex.")
 
 (defun js2--closure-nested-namespace-p (identifier)
   "Return non-nil if IDENTIFIER has labels after one is capitalized."
@@ -201,6 +244,34 @@ making up that identifier."
     (when last
       (funcall on-call last))))
 
+(defun js2--closure-extract-jsdocs (ast)
+  "Return list of JSDoc strings in AST."
+  (let (result (comments (js2-ast-root-comments ast)))
+    (dolist (node comments result)
+      (when (eq (js2-comment-node-format node) 'jsdoc)
+        (let ((value (buffer-substring-no-properties
+                      (js2-node-abs-pos node)
+                      (+ (js2-node-abs-pos node)
+                         (js2-node-len node)))))
+          (setq result (cons value result)))))))
+
+(defun js2--closure-extract-namespaces (jsdoc)
+  "Extract namespaces from Closure type tags in JSDOC."
+  (let (result)
+    (let ((i 0))
+      (while (string-match js2-closure-jsdoc-compound-type-tag-regexp jsdoc i)
+        (setq i (match-end 0))
+        (let ((j 0)
+              (compound-type (match-string 1 jsdoc)))
+          (while (string-match js2-closure-namespace-regexp compound-type j)
+            (setq j (match-end 0)
+                  result (cons (match-string 0 compound-type) result))))))
+    (let ((i 0))
+      (while (string-match js2-closure-jsdoc-simple-type-tag-regexp jsdoc i)
+        (setq i (match-end 0)
+              result (cons (match-string 1 jsdoc) result))))
+    (delete-dups result)))
+
 (defun js2--closure-determine-requires (ast)
   "Return sorted list of closure namespaces from AST to be imported."
   (let (provides requires references)
@@ -242,7 +313,13 @@ making up that identifier."
                           (push item references))
                         (setq item nil)))
                  (setq item (butlast item)))))))
-      (js2--closure-crawl ast on-call on-identifier))
+      (js2--closure-crawl ast on-call on-identifier)
+      (when js2-closure-require-jsdoc
+        (let ((jsdocs (js2--closure-extract-jsdocs ast)))
+          (dolist (jsdoc jsdocs)
+            (let ((items (js2--closure-extract-namespaces jsdoc)))
+              (dolist (item items)
+                (funcall on-identifier item)))))))
     (sort (let (result)
             (dolist (item requires)
               (when (or (not js2-closure-remove-unused)
@@ -320,7 +397,7 @@ making up that identifier."
   (setq js2-closure-provides-modified (js2--closure-file-modified file))
   (message (format "Loaded %s" file)))
 
-(defun js2--has-traditional-namespaces ()
+(defun js2--closure-has-traditional-namespaces ()
   "Return t if buffer doesn't use module namespacing."
   (save-excursion
     (goto-char 0)
@@ -347,7 +424,7 @@ memory if it was modified or not yet loaded."
                          (js2--closure-file-modified
                           js2-closure-provides-file)))
     (js2--closure-load js2-closure-provides-file))
-  (when (js2--has-traditional-namespaces)
+  (when (js2--closure-has-traditional-namespaces)
     (let ((namespaces (js2--closure-determine-requires js2-mode-ast)))
       (if namespaces
           (js2--closure-replace-closure-requires namespaces)
