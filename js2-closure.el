@@ -87,7 +87,8 @@ disabling this feature."
   :group 'js2-mode)
 
 (defcustom js2-closure-whitelist
-  '("goog.testing.asserts")
+  '("goog.testing.asserts"
+    "goog.testing.jsunit")
   "List of goog.require namespaces that should never be removed."
   :type '(repeat string)
   :group 'js2-mode)
