@@ -94,6 +94,15 @@
     (should (equal (js2--closure-determine-requires ast)
                    '("goog.dom")))))
 
+(ert-deftest goog-module-get--gets-required-regardless-of-provides ()
+  (let ((js2-closure-remove-unused t)
+        (js2-closure-provides (js2--closure-make-tree
+                               '((goog module))))
+        (ast (make-ast "var MyModule = goog.module.get('foo.MyModule');")))
+    (should (equal (js2--closure-determine-requires ast)
+                   '("foo.MyModule"
+                     "goog.module")))))
+
 (ert-deftest determine-requires--already-required ()
   (let ((js2-closure-remove-unused t)
         (js2-closure-provides (js2--closure-make-tree

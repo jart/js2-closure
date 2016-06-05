@@ -220,7 +220,13 @@ making up that identifier."
                       (let ((item (js2--closure-make-identifier
                                    (js2-string-node-value arg1))))
                         (when (not (member item requires))
-                          (push item requires))))))))
+                          (push item requires))))
+                     ((and (equal funk '(goog module get))
+                           (js2-string-node-p arg1))
+                      (let ((item (js2--closure-make-identifier
+                                   (js2-string-node-value arg1))))
+                        (when (not (member item references))
+                          (push item references))))))))
           (on-identifier
            (lambda (node)
              (let ((item (js2--closure-make-identifier node)))
