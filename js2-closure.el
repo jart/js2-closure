@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2016 Google, Inc.
 ;; Author: Justine Tunney <jart@google.com>
-;; Version: 1.4
+;; Version: 2.0
 ;; URL: http://github.com/jart/js2-closure
 ;; Package-Requires: ((js2-mode "20150909"))
 
