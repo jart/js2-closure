@@ -77,9 +77,9 @@
 ;;
 ;; You can customize the behavior of js2-closure with the following settings:
 ;;
-;; - `js2-closure-remove-unused'
-;; - `js2-closure-require-jsdoc'
-;; - `js2-closure-whitelist'
+;; o `js2-closure-remove-unused'
+;; o `js2-closure-require-jsdoc'
+;; o `js2-closure-whitelist'
 ;;
 ;; See the source code for more information.
 
