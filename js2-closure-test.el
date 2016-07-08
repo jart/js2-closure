@@ -41,19 +41,6 @@
                  '((goog Foo)
                    (goog lol Bean)))))
 
-(ert-deftest type-in-weird-jsdoc--gets-detected ()
-  (let ((js2-closure-require-jsdoc t)
-        (js2-closure-provides (js2--closure-make-tree
-                               '((goog dom TagName)))))
-    (with-temp-buffer
-      (insert "
-/** @type @const {!goog.dom.TagName} */
-var hello;
-")
-      (js2-reparse)
-      (should (equal (js2--closure-determine-requires (get-ast))
-                     '("goog.dom.TagName"))))))
-
 (ert-deftest member-tree ()
   (let ((tree (js2--closure-make-tree
                '((goog dom)
@@ -75,25 +62,27 @@ var hello;
     (should (not (js2--closure-member-tree nil nil)))))
 
 (ert-deftest determine-requires--empty-buffer--returns-empty ()
-  (should (not (js2--closure-determine-requires (make-ast "")))))
+  (should (equal (js2--closure-determine-requires (make-ast ""))
+                 (cons nil nil))))
 
 (ert-deftest determine-requires--remove-unused ()
   (let ((js2-closure-remove-unused t)
         (ast (make-ast "goog.require('foo');")))
-    (should (not (js2--closure-determine-requires ast)))))
+    (should (equal (js2--closure-determine-requires ast)
+                   (cons nil nil)))))
 
 (ert-deftest determine-requires--whitelist ()
   (let ((js2-closure-remove-unused t)
         (js2-closure-whitelist '("foo"))
         (ast (make-ast "goog.require('foo');")))
     (should (equal (js2--closure-determine-requires ast)
-                   '("foo")))))
+                   (cons '("foo") nil)))))
 
 (ert-deftest determine-requires--dont-remove-unused ()
   (let ((js2-closure-remove-unused nil)
         (ast (make-ast "goog.require('foo');")))
     (should (equal (js2--closure-determine-requires ast)
-                   '("foo")))))
+                   (cons '("foo") nil)))))
 
 (ert-deftest determine-requires--function-call ()
   (let ((js2-closure-remove-unused t)
@@ -101,7 +90,7 @@ var hello;
                                '((goog dom))))
         (ast (make-ast "goog.dom.getElement('foo');")))
     (should (equal (js2--closure-determine-requires ast)
-                   '("goog.dom")))))
+                   (cons '("goog.dom") nil)))))
 
 (ert-deftest determine-requires--reference ()
   (let ((js2-closure-remove-unused t)
@@ -109,7 +98,7 @@ var hello;
                                '((goog dom))))
         (ast (make-ast "foo = goog.dom.getElement;")))
     (should (equal (js2--closure-determine-requires ast)
-                   '("goog.dom")))))
+                   (cons '("goog.dom") nil)))))
 
 (ert-deftest goog-module-get--gets-required-regardless-of-provides ()
   (let ((js2-closure-remove-unused t)
@@ -117,8 +106,9 @@ var hello;
                                '((goog module))))
         (ast (make-ast "var MyModule = goog.module.get('foo.MyModule');")))
     (should (equal (js2--closure-determine-requires ast)
-                   '("foo.MyModule"
-                     "goog.module")))))
+                   (cons '("foo.MyModule"
+                           "goog.module")
+                         nil)))))
 
 (ert-deftest determine-requires--already-required ()
   (let ((js2-closure-remove-unused t)
@@ -135,8 +125,9 @@ foo.Bar = function() {
 };
 ")))
     (should (equal (js2--closure-determine-requires ast)
-                   '("goog.dom"
-                     "goog.events.EventManager")))))
+                   (cons '("goog.dom"
+                           "goog.events.EventManager")
+                         nil)))))
 
 (ert-deftest determine-requires--provide-is-ignored ()
   (let ((js2-closure-remove-unused t)
@@ -146,7 +137,8 @@ foo.Bar = function() {
 goog.provide('foo.Bar');
 new foo.Bar();
 ")))
-    (should (not (js2--closure-determine-requires ast)))))
+    (should (equal (js2--closure-determine-requires ast)
+                   (cons nil nil)))))
 
 (ert-deftest determine-requires--dont-include-parent-namespaces ()
   (let ((js2-closure-remove-unused t)
@@ -155,7 +147,7 @@ new foo.Bar();
                                  (goog events EventManager))))
         (ast (make-ast "new goog.events.EventManager();")))
     (should (equal (js2--closure-determine-requires ast)
-                   '("goog.events.EventManager")))))
+                   (cons '("goog.events.EventManager") nil)))))
 
 (ert-deftest replace-closure-requires ()
   (let (contents)
@@ -167,7 +159,7 @@ goog.require('black.angel');
 goog.require('not.insane');\n\n
 jart.lol.funk = function() {};
 ")
-      (js2--closure-replace-closure-requires
+      (js2--closure-replace-requires
        '("a.cat"
          "black.angel"
          "down.with.bill.gates"))
@@ -207,7 +199,7 @@ goog.provide('jart.lol.Hog');
 goog.provide('jart.lol.Mog');\n\n\n
 jart.lol.Hog = function() {};
 ")
-      (js2--closure-replace-closure-requires
+      (js2--closure-replace-requires
        '("a.cat"
          "black.angel"
          "down.with.bill.gates"))
@@ -229,7 +221,7 @@ jart.lol.Hog = function() {};
 /** @fileoverview blah */\n
 jart.lol.Hog = function() {};
 ")
-      (js2--closure-replace-closure-requires '("a.cat"))
+      (js2--closure-replace-requires '("a.cat"))
       (setq contents (buffer-substring-no-properties
                       (point-min) (point-max))))
     (should (equal contents "
@@ -244,7 +236,7 @@ jart.lol.Hog = function() {};
       (insert "// oh yeah\n
 jart.lol.Hog = function() {};
 ")
-      (js2--closure-replace-closure-requires '("a.cat"))
+      (js2--closure-replace-requires '("a.cat"))
       (setq contents (buffer-substring-no-properties
                       (point-min) (point-max))))
     (should (equal contents "// oh yeah\n
@@ -304,11 +296,21 @@ var there;
 ")
       (js2-reparse)
       (should (equal (js2--closure-determine-requires (get-ast))
-                     '("goog.dom.TagName"))))))
+                     (cons nil '("goog.dom.TagName")))))))
 
-(ert-deftest type-in-jsdoc--namespace-is-provided--does-not-get-required ()
-  (let ((js2-closure-require-jsdoc t)
-        (js2-closure-provides (js2--closure-make-tree
+(ert-deftest type-in-weird-jsdoc--gets-detected ()
+  (let ((js2-closure-provides (js2--closure-make-tree
+                               '((goog dom TagName)))))
+    (with-temp-buffer
+      (insert "
+/** @type @const {!goog.dom.TagName} */
+var hello;
+")
+      (should (equal (js2--closure-determine-requires (get-ast))
+                     (cons nil '("goog.dom.TagName")))))))
+
+(ert-deftest type-in-jsdoc--namespace-is-provided--does-not-get-forwarded ()
+  (let ((js2-closure-provides (js2--closure-make-tree
                                '((goog dom TagName)))))
     (with-temp-buffer
       (insert "
@@ -320,22 +322,94 @@ var there;
 ")
       (js2-reparse)
       (should (equal (js2--closure-determine-requires (get-ast))
-                     '())))))
+                     (cons nil nil))))))
 
-(ert-deftest type-in-jsdoc--doesnt-get-detected-when-feature-is-off ()
-  (let ((js2-closure-require-jsdoc nil)
+(ert-deftest type-only-in-jsdoc--gets-forward-declared--empty ()
+  (let (contents
         (js2-closure-provides (js2--closure-make-tree
                                '((goog dom TagName)))))
     (with-temp-buffer
       (insert "
 /** @type {!goog.dom.TagName} */
 var hello;
-/** @type {!goog.dom.TagName} */
-var there;
 ")
+      (js2-mode)
       (js2-reparse)
-      (should (equal (js2--closure-determine-requires (get-ast))
-                     '())))))
+      (js2--closure-run)
+      (setq contents (buffer-substring-no-properties
+                      (point-min) (point-max))))
+    (should (equal contents "goog.forwardDeclare('goog.dom.TagName');\n
+/** @type {!goog.dom.TagName} */
+var hello;
+"))))
+
+(ert-deftest type-only-in-jsdoc--gets-forward-declared--provide ()
+  (let (contents
+        (js2-closure-provides (js2--closure-make-tree
+                               '((goog dom TagName)))))
+    (with-temp-buffer
+      (insert "
+goog.provide('jart.lol');\n
+/** @type {!goog.dom.TagName} */
+var hello;
+")
+      (js2-mode)
+      (js2-reparse)
+      (js2--closure-run)
+      (setq contents (buffer-substring-no-properties
+                      (point-min) (point-max))))
+    (should (equal contents "
+goog.provide('jart.lol');\n
+goog.forwardDeclare('goog.dom.TagName');\n
+/** @type {!goog.dom.TagName} */
+var hello;
+"))))
+
+(ert-deftest type-only-in-jsdoc--gets-forward-declared--require ()
+  (let (contents
+        (js2-closure-provides (js2--closure-make-tree
+                               '((goog dom)
+                                 (goog dom TagName)))))
+    (with-temp-buffer
+      (insert "
+goog.provide('jart.lol');\n
+/** @type {!goog.dom.TagName} */
+var hello = goog.dom.getElement('hi');
+")
+      (js2-mode)
+      (js2-reparse)
+      (js2--closure-run)
+      (setq contents (buffer-substring-no-properties
+                      (point-min) (point-max))))
+    (should (equal contents "
+goog.provide('jart.lol');\n
+goog.require('goog.dom');\n
+goog.forwardDeclare('goog.dom.TagName');\n
+/** @type {!goog.dom.TagName} */
+var hello = goog.dom.getElement('hi');
+"))))
+
+(ert-deftest type-only-in-jsdoc--gets-forward-declared--fileoverview ()
+  (let (contents
+        (js2-closure-provides (js2--closure-make-tree
+                               '((goog dom TagName)))))
+    (with-temp-buffer
+      (insert "
+/** @fileoverview blah */\n
+/** @type {!goog.dom.TagName} */
+var hello;
+")
+      (js2-mode)
+      (js2-reparse)
+      (js2--closure-run)
+      (setq contents (buffer-substring-no-properties
+                      (point-min) (point-max))))
+    (should (equal contents "
+/** @fileoverview blah */\n
+goog.forwardDeclare('goog.dom.TagName');\n
+/** @type {!goog.dom.TagName} */
+var hello;
+"))))
 
 (ert-deftest empty-buffer--will-be-operated-on ()
   (should (with-temp-buffer (js2--closure-has-traditional-namespaces))))
