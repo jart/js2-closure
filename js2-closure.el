@@ -135,7 +135,7 @@ disabling this feature."
   "Matches JSDoc type declarations that can't have things like unions.")
 
 (defconst js2-closure-jsdoc-compound-type-tag-regexp
-  (concat "\\*\\s-*@"
+  (concat "\\s-*@"
           (regexp-opt
            '("const"
              "define"

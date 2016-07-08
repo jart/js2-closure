@@ -41,6 +41,19 @@
                  '((goog Foo)
                    (goog lol Bean)))))
 
+(ert-deftest type-in-weird-jsdoc--gets-detected ()
+  (let ((js2-closure-require-jsdoc t)
+        (js2-closure-provides (js2--closure-make-tree
+                               '((goog dom TagName)))))
+    (with-temp-buffer
+      (insert "
+/** @type @const {!goog.dom.TagName} */
+var hello;
+")
+      (js2-reparse)
+      (should (equal (js2--closure-determine-requires (get-ast))
+                     '("goog.dom.TagName"))))))
+
 (ert-deftest member-tree ()
   (let ((tree (js2--closure-make-tree
                '((goog dom)
