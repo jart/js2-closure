@@ -18,7 +18,7 @@
 ;; even if you have a big project.
 ;;
 ;; This tool only works on files using traditional namespacing,
-;; i.e. `goog.provide` and `goog.require`. However js2-closure is smart enough
+;; i.e. `goog.provide` and `goog.require`.  However js2-closure is smart enough
 ;; to turn itself off in files that use `goog.module` or ES6 imports.
 
 ;;; Installation:
@@ -288,28 +288,20 @@ referenced only in JSDoc that should be forward-declared."
                    (arg1 (car (js2-call-node-args node))))
                (cond ((and (equal funk '(goog provide))
                            (js2-string-node-p arg1))
-                      (let ((item (js2--closure-make-identifier
-                                   (js2-string-node-value arg1))))
-                        (when (not (member item provides))
-                          (push item provides))))
+                      (add-to-list 'provides (js2--closure-make-identifier
+                                              (js2-string-node-value arg1))))
                      ((and (equal funk '(goog require))
                            (js2-string-node-p arg1))
-                      (let ((item (js2--closure-make-identifier
-                                   (js2-string-node-value arg1))))
-                        (when (not (member item requires))
-                          (push item requires))))
+                      (add-to-list 'requires (js2--closure-make-identifier
+                                              (js2-string-node-value arg1))))
                      ((and (equal funk '(goog module get))
                            (js2-string-node-p arg1))
-                      (let ((item (js2--closure-make-identifier
-                                   (js2-string-node-value arg1))))
-                        (when (not (member item references))
-                          (push item references))))
+                      (add-to-list 'references (js2--closure-make-identifier
+                                                (js2-string-node-value arg1))))
                      ((and (equal funk '(goog forwardDeclare))
                            (js2-string-node-p arg1))
-                      (let ((item (js2--closure-make-identifier
-                                   (js2-string-node-value arg1))))
-                        (when (not (member item forwards))
-                          (push item forwards))))))))
+                      (add-to-list 'forwards (js2--closure-make-identifier
+                                              (js2-string-node-value arg1))))))))
           (on-identifier
            (lambda (node)
              (let ((item (js2--closure-make-identifier node)))
@@ -317,12 +309,10 @@ referenced only in JSDoc that should be forward-declared."
                  (cond ((member item provides)
                         (setq item nil))
                        ((member item requires)
-                        (when (not (member item references))
-                          (push item references))
+                        (add-to-list 'references item)
                         (setq item nil))
                        ((js2--closure-member-tree item js2-closure-provides)
-                        (when (not (member item references))
-                          (push item references))
+                        (add-to-list 'references item)
                         (setq item nil)))
                  (setq item (butlast item))))))
           (on-identifier-jsdoc
@@ -332,8 +322,7 @@ referenced only in JSDoc that should be forward-declared."
                  (cond ((or (member item provides))
                         (setq item nil))
                        ((js2--closure-member-tree item js2-closure-provides)
-                        (when (not (member item references-jsdoc))
-                          (push item references-jsdoc))
+                        (add-to-list 'references-jsdoc item)
                         (setq item nil)))
                  (setq item (butlast item)))))))
       (js2--closure-crawl ast on-call on-identifier on-identifier-jsdoc))
@@ -347,8 +336,7 @@ referenced only in JSDoc that should be forward-declared."
                     (push namespace result))))
               (dolist (item references result)
                 (let ((namespace (js2--closure-identifier-to-string item)))
-                  (when (not (member namespace result))
-                    (push namespace result))))))
+                  (add-to-list 'result namespace)))))
            (to-forward
             (let (result)
               (dolist (item forwards)
@@ -359,9 +347,8 @@ referenced only in JSDoc that should be forward-declared."
                     (push namespace result))))
               (dolist (item references-jsdoc result)
                 (let ((namespace (js2--closure-identifier-to-string item)))
-                  (when (and (not (member namespace to-require))
-                             (not (member namespace result)))
-                    (push namespace result)))))))
+                  (when (not (member namespace to-require))
+                    (add-to-list 'result namespace)))))))
       (cons (sort to-require 'string<)
             (sort to-forward 'string<)))))
 
