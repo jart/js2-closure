@@ -160,7 +160,6 @@ than disabling this feature.  Or you can add a @suppress
 
 (defun js2--closure-prune-provides (list)
   "Remove identifiers from LIST that shouldn't be required.
-
 Nested namespaces such as `goog.Foo.Bar` are provided in the
 Closure Library source code on several occasions.  However if you
 try to require these namespaces, then `gjslint` will complain,
@@ -213,7 +212,6 @@ because it only wants us to require `goog.Foo`."
 
 (defun js2--closure-crawl (ast on-call on-identifier on-identifier-jsdoc)
   "Crawl `js2-mode' AST and invoke callbacks on nodes.
-
 ON-CALL will be invoked for all `js2-call-node' nodes, passing
 the node itself as the first argument.
 
@@ -277,7 +275,6 @@ JSDoc comments."
 
 (defun js2--closure-determine-requires (ast)
   "Return closure namespaces in AST to be imported.
-
 The result is a cons cell containing two sorted lists.  The first
 is namespaces that should be required.  The second is namespaces
 referenced only in JSDoc that should be forward-declared."
@@ -368,7 +365,6 @@ referenced only in JSDoc that should be forward-declared."
 
 (defun js2--closure-replace (type namespaces after1 after2)
   "Replace section of goog.require or goog.forwardDeclare statements.
-
 This replaces the current section of TYPE statements with
 NAMESPACES, which should come after the AFTER1 or AFTER2
 sections."
@@ -459,7 +455,6 @@ sections."
 ;;;###autoload
 (defun js2-closure-fix ()
   "Fix the `goog.require` statements in the current buffer.
-
 This function assumes that all the requires are in one place and
 sorted, without indentation or blank lines.  If you don't have
 any requires, they'll be added after your provide statements.  If
@@ -481,7 +476,6 @@ memory if it was modified or not yet loaded."
 ;;;###autoload
 (defun js2-closure-save-hook ()
   "Global save hook to invoke `js2-closure-fix' if in `js2-mode'.
-
 To use this feature, add it to `before-save-hook'."
   (interactive)
   (when (eq major-mode 'js2-mode)
