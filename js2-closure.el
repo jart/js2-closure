@@ -88,8 +88,9 @@
 
 (defcustom js2-closure-remove-unused t
   "Determines if unused goog.require statements should be auto-removed.
-You might want to consider using `js2-closure-whitelist' rather than
-disabling this feature."
+You might want to consider using `js2-closure-whitelist' rather
+than disabling this feature.  Or you can add a @suppress
+{extraRequire} JSDoc before before the require."
   :type 'boolean
   :group 'js2-mode)
 
@@ -388,15 +389,21 @@ sections."
                    (insert "\n"))))))
     (while (search-forward-regexp
             (format "^%s('\\([^']+\\)');" type) nil t)
-      (if namespaces
+      (beginning-of-line)
+      (if (looking-back "@suppress {extraRequire}[^*]*\\*/\n")
           (progn
-            (when (not (string= (match-string 1) (car namespaces)))
-              (replace-match (car namespaces) t t nil 1))
+            (setq namespaces (delete (match-string 1) namespaces))
             (forward-line))
         (progn
-          (beginning-of-line)
-          (delete-region (point) (progn (forward-line 1) (point)))))
-      (setq namespaces (cdr namespaces)))
+          (if namespaces
+              (progn
+                (when (not (string= (match-string 1) (car namespaces)))
+                  (replace-match (car namespaces) t t nil 1))
+                (forward-line))
+            (progn
+              (beginning-of-line)
+              (delete-region (point) (progn (forward-line 1) (point)))))
+          (setq namespaces (cdr namespaces)))))
     (while namespaces
       (insert (format "%s('%s');\n" type (pop namespaces))))))
 
