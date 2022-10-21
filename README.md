@@ -1,3 +1,4 @@
+<a href="http://github.com/jart/js2-closure"><img src="https://www.gnu.org/software/emacs/images/emacs.png" alt="Emacs Logo" width="80" height="80" align="right"></a>
 ## js2-closure.el
 *Google Closure dependency manager*
 
@@ -15,7 +16,7 @@ the top of your buffer.  It works like magic.  It also runs instantaneously,
 even if you have a big project.
 
 This tool only works on files using traditional namespacing,
-i.e. `goog.provide` and `goog.require`. However js2-closure is smart enough
+i.e. `goog.provide` and `goog.require`.  However js2-closure is smart enough
 to turn itself off in files that use `goog.module` or ES6 imports.
 
 ### Installation
@@ -77,34 +78,47 @@ JavaScript style guide: http://goo.gl/Ny5WxZ
 You can customize the behavior of js2-closure with the following settings:
 
 * `js2-closure-remove-unused`
-* `js2-closure-require-jsdoc`
 * `js2-closure-whitelist`
 
 See the source code for more information.
 
-### Function Documentation
 
+
+### Customization Documentation
+
+#### `js2-closure-remove-unused`
+
+Determines if unused goog.require statements should be auto-removed.
+You might want to consider using `js2-closure-whitelist` rather
+than disabling this feature.  Or you can add a @suppress
+{extraRequire} JSDoc before before the require.
+
+#### `js2-closure-whitelist`
+
+List of goog.require namespaces that should never be removed.
+
+#### `js2-closure-provides-file`
+
+Filename of generated elisp file listing all provided namespaces.
+
+### Function and Macro Documentation
 
 #### `(js2-closure-fix)`
 
-Fix the ‘goog.require‘ statements in the current buffer.
-
+Fix the `goog.require` statements in the current buffer.
 This function assumes that all the requires are in one place and
-sorted, without indentation or blank lines.  If you don’t have
-any requires, they’ll be added after your provide statements.  If
-you don’t have those, then this routine will fail.
-
+sorted, without indentation or blank lines.  If you don't have
+any requires, they'll be added after your provide statements.  If
+you don't have those, then this routine will fail.
 Effort was also made to avoid needlessly modifying the buffer,
 since syntax coloring might take some time to kick back in.
-
-This will automatically load ‘js2-closure-provides-file’ into
+This will automatically load `js2-closure-provides-file` into
 memory if it was modified or not yet loaded.
 
 #### `(js2-closure-save-hook)`
 
-Global save hook to invoke ‘js2-closure-fix’ if in ‘js2-mode’.
-
-To use this feature, add it to ‘before-save-hook’.
+Global save hook to invoke `js2-closure-fix` if in `js2-mode`.
+To use this feature, add it to `before-save-hook`.
 
 -----
 <div style="padding-top:15px;color: #d0d0d0;">
